@@ -1,0 +1,4 @@
+hamada:50
+ahmed:300
+mohamed:500
+tito:100
