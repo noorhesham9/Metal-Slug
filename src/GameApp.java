@@ -1,7 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import javax.imageio.ImageIO;
 
@@ -30,57 +28,20 @@ public class GameApp {
                 super.paintComponent(g);
                 if (finalBgImage != null) {
                     g.drawImage(finalBgImage, 0, 0, getWidth(), getHeight(), this);
-                } else {
-                    g.setColor(Color.BLACK);
-                    g.fillRect(0, 0, getWidth(), getHeight());
                 }
             }
         };
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
-        JButton btnStart = createStyledButton("Start Game");
-        JButton btnScoreboard = createStyledButton("Scoreboard");
-        JButton btnInstructions = createStyledButton("Instructions");
-        JButton btnExit = createStyledButton("Exit");
-
-        btnStart.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("Start Game Clicked! (Game Loop not integrated yet)");
-                JOptionPane.showMessageDialog(frame, "Game Loop is coming soon!");
-            }
-        });
-        btnInstructions.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(frame,
-                        "Game Instructions:\n\n" +
-                                "1. Use Arrow Keys to Move.\n" +
-                                "2. Press 'Space' to Shoot.\n" +
-                                "3. Avoid enemies and obstacles.\n" +
-                                "4. Survive as long as possible!\n\n" +
-                                "Good Luck, Soldier!",
-                        "How to Play",
-                        JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-
-        btnExit.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.exit(0);
-            }
-        });
-
+        JButton btnStart = createStyledButton("Start");
+        JButton btnSettings = createStyledButton("Scoreboard");
+        JButton btnExit = createStyledButton("Instructions");
         menuPanel.add(Box.createVerticalGlue());
         menuPanel.add(btnStart);
         menuPanel.add(Box.createVerticalStrut(20));
-        menuPanel.add(btnScoreboard);
-        menuPanel.add(Box.createVerticalStrut(20));
-        menuPanel.add(btnInstructions);
+        menuPanel.add(btnSettings);
         menuPanel.add(Box.createVerticalStrut(20));
         menuPanel.add(btnExit);
         menuPanel.add(Box.createVerticalGlue());
-
         frame.add(menuPanel);
         frame.setVisible(true);
     }
@@ -89,10 +50,7 @@ public class GameApp {
         JButton btn = new JButton(text);
         btn.setAlignmentX(Component.CENTER_ALIGNMENT);
         btn.setFont(new Font("Arial", Font.BOLD, 24));
-        btn.setMaximumSize(new Dimension(250, 60));
-        btn.setBackground(Color.DARK_GRAY);
-        btn.setForeground(Color.WHITE);
-        btn.setFocusPainted(false);
+        btn.setMaximumSize(new Dimension(200, 50));
         return btn;
     }
 }
