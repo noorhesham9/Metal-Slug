@@ -1,13 +1,16 @@
-import java.io.*;
-import java.util.*;
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
+import java.io.*;
 import javax.imageio.ImageIO;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class GameApp {
-
     JFrame frame;
+    boolean mute = false;
 
     public static void main(String[] args) {
         new GameApp();
@@ -22,6 +25,15 @@ public class GameApp {
         mainMenu();
 
         frame.setVisible(true);
+        Sound.playBackground("Assets/Metal Slug 2 Prehistoric Site(MP3_160K).wav");
+       /* if(mute==false) {
+            System.out.println("annnnnnnnnnn");
+    }else {
+            Sound.stop();
+            System.out.println("annnnnnnnnnnn22222222");
+        }
+*/
+
     }
 
     void mainMenu() {
@@ -44,28 +56,111 @@ public class GameApp {
         };
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
 
-        JButton btnStart = createStyledButton("Start");
-        JButton btnSettings = createStyledButton("Scoreboard");
-        JButton btnExit = createStyledButton("Instructions");
-
-        btnSettings.addActionListener(e -> showScoreboard());
+        JButton startButton = createStyledButton("Start");
+        JButton scoreBoard = createStyledButton("Scoreboard");
+        JButton Instructions = createStyledButton("Instructions");
+        JButton Mute = createStyledButton(Sound.isMuted() ? "Unmute" : "Mute");
+        Mute.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Sound.toggleMute();
+                Mute.setText(Sound.isMuted() ? "Unmute" : "Mute");
+            }
+        });
+        scoreBoard.addActionListener(e -> showScoreboard());
 
         menuPanel.add(Box.createVerticalGlue());
-        menuPanel.add(btnStart);
+        menuPanel.add(startButton);
         menuPanel.add(Box.createVerticalStrut(20));
-        menuPanel.add(btnSettings);
+        menuPanel.add(scoreBoard);
         menuPanel.add(Box.createVerticalStrut(20));
-        menuPanel.add(btnExit);
+        menuPanel.add(Instructions);
+        menuPanel.add(Box.createVerticalStrut(20));
+        menuPanel.add(Mute);
         menuPanel.add(Box.createVerticalGlue());
-
         frame.setContentPane(menuPanel);
         frame.revalidate();
+        startButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Sound.playSound("Assets/mixkit-drums-of-war-2784.wav");
+
+                frame.dispose();
+                showPlayerMode();
+
+
+            }
+        });
+        scoreBoard.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Sound.stop();
+                Sound.playSound("Assets/mixkit-drums-of-war-2784.wav");
+                Sound.playBackground("Assets/metal slug 3 carry out(M4A_128K).wav");
+
+            }
+        });
+    }
+
+    void showPlayerMode() {
+        JFrame frame = new JFrame("Select Player Mode");
+        frame.setSize(800, 600);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLocationRelativeTo(null);
+
+        Image bgImage = null;
+        try {
+            bgImage = ImageIO.read(new File("Assets/background1.png"));
+        } catch (Exception e) {
+            System.out.println("Image not found! Check file path.");
+        }
+
+        final Image finalBgImage = bgImage;
+
+        JPanel menuPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (finalBgImage != null) {
+                    g.drawImage(finalBgImage, 0, 0, getWidth(), getHeight(), this);
+                }
+            }
+        };
+
+        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
+
+        JButton singlePlayer = createStyledButton("Single Player");
+        JButton multiplePlayers = createStyledButton("Multi Players");
+        JButton Back = createStyledButton("Back");
+
+        Back.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Sound.playSound("Assets/mixkit-shotgun-long-pump-1666.wav");
+
+                frame.dispose();
+                new GameApp();
+
+
+            }
+        });
+
+        menuPanel.add(Box.createVerticalGlue());
+        menuPanel.add(singlePlayer);
+        menuPanel.add(Box.createVerticalStrut(20));
+        menuPanel.add(multiplePlayers);
+        menuPanel.add(Box.createVerticalStrut(20));
+        menuPanel.add(Back);
+        menuPanel.add(Box.createVerticalGlue());
+
+        frame.add(menuPanel);
+        frame.setVisible(true);
     }
 
     void showScoreboard() {
         JPanel scorePanel = new JPanel();
         scorePanel.setLayout(new BoxLayout(scorePanel, BoxLayout.Y_AXIS));
-        scorePanel.setBackground(Color.DARK_GRAY);
+        scorePanel.setBackground(Color.BLACK);
 
         JLabel title = new JLabel("High Scores");
         title.setFont(new Font("Arial", Font.BOLD, 30));
@@ -90,8 +185,16 @@ public class GameApp {
 
 
         JButton btnBack = createStyledButton("Back");
-        btnBack.addActionListener(e -> mainMenu());
-
+        btnBack
+                .addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        Sound.playSound("Assets/mixkit-shotgun-long-pump-1666.wav");
+                        Sound.stop();
+                        frame.dispose();
+                        new GameApp();
+                    }
+                });
         scorePanel.add(Box.createVerticalGlue());
         scorePanel.add(btnBack);
         scorePanel.add(Box.createVerticalStrut(20));
@@ -105,7 +208,6 @@ public class GameApp {
         btn.setAlignmentX(Component.CENTER_ALIGNMENT);
         btn.setFont(new Font("Arial", Font.BOLD, 24));
         btn.setMaximumSize(new Dimension(200, 50));
-        btn.setFocusable(false);
         return btn;
     }
 
