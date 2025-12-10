@@ -30,14 +30,14 @@ public class Sound {
         }
     }
 
-    // وقف الموسيقى
+
     public static void stop() {
         if (bgMusic != null) {
             bgMusic.stop();
         }
     }
 
-    // ميوت / انميوت
+
     public static void toggleMute() {
         if (isMuted) {
             isMuted = false;
