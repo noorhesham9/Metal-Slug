@@ -3,6 +3,7 @@ import javax.media.opengl.*;
 import com.sun.opengl.util.FPSAnimator;
 import com.sun.opengl.util.j2d.TextRenderer;
 import com.sun.opengl.util.texture.Texture;
+import com.sun.opengl.util.texture.TextureCoords;
 import com.sun.opengl.util.texture.TextureIO;
 
 import javax.swing.*;
@@ -33,12 +34,15 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
     int score = 0;
     long lastTime;
     boolean isGameOver = false;
+    boolean isGameRunning = true;
+    boolean isWin = false;
     String difficultyLevel;
-
+    TextRenderer timerRenderer;
     GLCanvas glCanvas;
     FPSAnimator animator;
     TextRenderer textRenderer;
-
+    TextRenderer menuRenderer;
+    TextRenderer ScoreRenderer;
     Texture backgroundTexture;
     Texture pauseButtonTexture;
     Texture scoreBoardTexture;
@@ -46,9 +50,17 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
     Texture gamePausedTexture;
     Texture continueTexture;
     Texture exitTexture;
+
+    private Texture winTexture;
+    private Texture loseTexture;
+    private Texture Enter;
+    private Texture To;
+    private Texture Exit;
+
+
     Texture[] numbersTextures = new Texture[10];
-    Texture[] healthImages  = new Texture[6];
-    int playerHealth= 78;
+    Texture[] healthImages = new Texture[6];
+    int playerHealth = 78;
     ArrayList<Texture> idleTextures = new ArrayList<>();
     ArrayList<Texture> walkingTextures = new ArrayList<>();
     ArrayList<Texture> shootingTextures = new ArrayList<>();
@@ -88,8 +100,15 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
 
     public GameGlListener(String difficulty) {
         this.difficultyLevel = difficulty;
-        timerSeconds = 0;
+//        timerSeconds = 0;
 
+        if (difficulty.equals("Easy")) {
+            timerSeconds = 60;
+        } else if (difficulty.equals("Medium")) {
+            timerSeconds = 30;
+        } else if (difficulty.equals("Hard")) {
+            timerSeconds = 3;
+        }
         GLCapabilities capabilities = new GLCapabilities();
         glCanvas = new GLCanvas(capabilities);
         glCanvas.addGLEventListener(this);
@@ -146,13 +165,21 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             File exFile = new File("Assets/exitboard (1).png");
             exitTexture = TextureIO.newTexture(exFile, true);
 
+
+            winTexture = TextureIO.newTexture(new File("Assets/youwin.png"), true);
+            loseTexture = TextureIO.newTexture(new File("Assets/youlose.png"), true);
+            Enter = TextureIO.newTexture(new File("Assets/word enter.png"), true);
+            To = TextureIO.newTexture(new File("Assets/word to.png"), true);
+            Exit = TextureIO.newTexture(new File("Assets/exit.png"), true);
+            backgroundTexture = TextureIO.newTexture(bgFile, true);
+
             for (int i = 0; i < 10; i++) {
                 File numFile = new File("Assets/numbers board (" + i + ").png");
                 numbersTextures[i] = TextureIO.newTexture(numFile, true);
             }
             for (int i = 0; i < 5; i++) {
-                File numFile = new File("Assets/helthbar/"+i+".png");
-                healthImages [i] = TextureIO.newTexture(numFile, true);
+                File numFile = new File("Assets/helthbar/" + i + ".png");
+                healthImages[i] = TextureIO.newTexture(numFile, true);
             }
 
             File w1 = new File("Assets/playerWalking/15.png");
@@ -193,6 +220,9 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             System.err.println(e.getMessage());
         }
 
+        timerRenderer = new TextRenderer(new Font("Stencil", Font.BOLD, 40));
+        menuRenderer = new TextRenderer(new Font("Arial", Font.BOLD, 28));
+        ScoreRenderer = new TextRenderer(new Font("Arial", Font.BOLD, 40));
         textRenderer = new TextRenderer(new Font("Stencil", Font.BOLD, 30));
     }
 
@@ -202,15 +232,158 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
         gl.glClear(GL.GL_COLOR_BUFFER_BIT);
 
         drawBackground(gl);
-        drawGame(gl);
-        drawHUD(gl, drawable);
-        drawHealthBar(gl);
+
+
+        if (isGameRunning) {
+            drawGame(gl);
+            drawHUD(gl, drawable);
+            checkGameStatus();
+            drawHealthBar(gl);
+        } else {
+            renderEndScreen(gl, drawable.getWidth(), drawable.getHeight());
+        }
         if (isPaused) {
             drawPauseMenu(gl, drawable);
         } else {
             updateTimer();
         }
     }
+
+    private void renderEndScreen(GL gl, int width, int height) {
+
+        Texture currentTex = isWin ? winTexture : loseTexture;
+
+        if (currentTex != null) {
+
+            gl.glMatrixMode(GL.GL_PROJECTION);
+            gl.glPushMatrix();
+            gl.glLoadIdentity();
+            gl.glOrtho(0, 1, 0, 1, -1, 1);
+
+
+            gl.glMatrixMode(GL.GL_MODELVIEW);
+            gl.glPushMatrix();
+            gl.glLoadIdentity();
+
+            gl.glDisable(GL.GL_DEPTH_TEST);
+            gl.glEnable(GL.GL_BLEND);
+            gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
+
+            gl.glColor3f(1, 1, 1);
+            currentTex.enable();
+            currentTex.bind();
+
+
+            gl.glScaled(0.5, 0.5, 1);
+
+
+            gl.glTranslatef(0.5f, 0.75f, 0);
+
+
+            gl.glBegin(GL.GL_QUADS);
+            gl.glTexCoord2f(0.0f, 0.0f);
+            gl.glVertex2f(0.0f, 1.0f);
+            gl.glTexCoord2f(1.0f, 0.0f);
+            gl.glVertex2f(1.0f, 1.0f);
+            gl.glTexCoord2f(1.0f, 1.0f);
+            gl.glVertex2f(1.0f, 0.0f);
+            gl.glTexCoord2f(0.0f, 1.0f);
+            gl.glVertex2f(0.0f, 0.0f);
+            gl.glEnd();
+
+            currentTex.disable();
+            gl.glDisable(GL.GL_BLEND);
+
+            gl.glPopMatrix();
+            gl.glMatrixMode(GL.GL_PROJECTION);
+            gl.glPopMatrix();
+            gl.glMatrixMode(GL.GL_MODELVIEW);
+            gl.glEnable(GL.GL_DEPTH_TEST);
+        } else {
+            menuRenderer.beginRendering(width, height);
+
+            menuRenderer.setColor(isWin ? Color.GREEN : Color.RED);
+            menuRenderer.draw(isWin ? "WIN" : "LOSE", width / 2, height / 2);
+            menuRenderer.endRendering();
+        }
+
+        // رسم النصوص الأخرى
+        ScoreRenderer.beginRendering(width, height);
+        menuRenderer.beginRendering(width, height);
+
+        menuRenderer.setColor(Color.WHITE);
+        menuRenderer.draw("Score: " + playerHealth, (width / 2) - 80, (height / 2) - 50);
+        menuRenderer.setColor(Color.YELLOW);
+
+
+        gl.glMatrixMode(GL.GL_MODELVIEW);
+        gl.glPushMatrix();
+        gl.glLoadIdentity();
+
+        float btnSize = 0.2f;
+        float startX = 0.27f;
+        float posY = 0.25f;
+        float spacing = 0.12f;
+
+        gl.glMatrixMode(GL.GL_PROJECTION);
+        gl.glPushMatrix();
+        gl.glLoadIdentity();
+        gl.glOrtho(0, 1, 0, 1, -1, 1);
+        gl.glMatrixMode(GL.GL_MODELVIEW);
+
+        gl.glDisable(GL.GL_DEPTH_TEST);
+        gl.glEnable(GL.GL_BLEND);
+        gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
+
+        Texture[] buttons = {Enter, To, Exit};
+        for (int i = 0; i < buttons.length; i++) {
+            Texture btnTex = buttons[i];
+            if (btnTex == null) continue;
+
+            float currentX = startX + (i * spacing);
+
+            gl.glColor3f(1, 1, 1);
+            btnTex.enable();
+            btnTex.bind();
+
+            TextureCoords coords = btnTex.getImageTexCoords();
+
+            gl.glBegin(GL.GL_QUADS);
+            gl.glTexCoord2f(coords.left(), coords.bottom());
+            gl.glVertex2f(currentX, posY);
+            gl.glTexCoord2f(coords.right(), coords.bottom());
+            gl.glVertex2f(currentX + btnSize, posY);
+            gl.glTexCoord2f(coords.right(), coords.top());
+            gl.glVertex2f(currentX + btnSize, posY + btnSize);
+            gl.glTexCoord2f(coords.left(), coords.top());
+            gl.glVertex2f(currentX, posY + btnSize);
+            gl.glEnd();
+
+            btnTex.disable();
+        }
+
+        gl.glDisable(GL.GL_BLEND);
+        gl.glMatrixMode(GL.GL_MODELVIEW);
+        gl.glPopMatrix();
+        gl.glMatrixMode(GL.GL_PROJECTION);
+        gl.glPopMatrix();
+        gl.glMatrixMode(GL.GL_MODELVIEW);
+
+        menuRenderer.endRendering();
+        ScoreRenderer.endRendering();
+    }
+
+    private void checkGameStatus() {
+        if (playerHealth <= 0) {
+            isGameRunning = false;
+            isWin = false;
+        }
+        if (timerSeconds <= 0) {
+            isGameRunning = false;
+            isWin = true;
+        }
+    }
+
 
     private void drawBackground(GL gl) {
         if (backgroundTexture == null) return;
@@ -306,10 +479,11 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
         if (isGameOver) {
             textRenderer.beginRendering(width, height);
             textRenderer.setColor(Color.RED);
-            textRenderer.draw("GAME OVER!", width / 2 - 50, height / 2);
+//            textRenderer.draw("GAME OVER!", width / 2 - 50, height / 2);
             textRenderer.endRendering();
         }
     }
+
     private void drawHealthBar(GL gl) {
         if (healthImages != null) {
 
@@ -323,7 +497,7 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
                 index = 3;
             } else if (playerHealth >= 20) {
                 index = 2;
-            }  else if (playerHealth >= 5) {
+            } else if (playerHealth >= 5) {
                 index = 1;
             } else {
                 index = 0;
@@ -339,10 +513,14 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
                 healthImages[index].bind();
 
                 gl.glBegin(GL.GL_QUADS);
-                gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex2f(x, y + h);
-                gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex2f(x + w, y + h);
-                gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex2f(x + w, y);
-                gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex2f(x, y);
+                gl.glTexCoord2f(0.0f, 0.0f);
+                gl.glVertex2f(x, y + h);
+                gl.glTexCoord2f(1.0f, 0.0f);
+                gl.glVertex2f(x + w, y + h);
+                gl.glTexCoord2f(1.0f, 1.0f);
+                gl.glVertex2f(x + w, y);
+                gl.glTexCoord2f(0.0f, 1.0f);
+                gl.glVertex2f(x, y);
                 gl.glEnd();
 
                 healthImages[index].disable();
@@ -473,6 +651,7 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             updateBullets(gl);
         }
     }
+
     private void animateSprite(GL gl) {
         ArrayList<Texture> currentAnim;
 
@@ -563,8 +742,11 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
 
     private void updateTimer() {
         if (!isGameOver && System.currentTimeMillis() - lastTime > 1000) {
-            timerSeconds++;
+            timerSeconds--;
             lastTime = System.currentTimeMillis();
+            if (timerSeconds <= 0) {
+                isGameOver = true;
+            }
         }
     }
 
@@ -589,6 +771,12 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             return;
         }
 
+        if (!isGameRunning) {
+            if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                myFrame.dispose();
+                new GameApp();
+            }
+        }
         if (e.getKeyCode() == KeyEvent.VK_P) {
             isPaused = !isPaused;
         } else if (e.getKeyCode() == KeyEvent.VK_LEFT) {

@@ -21,9 +21,7 @@ public class GameApp {
         frame.setSize(800, 600);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
-
         muteButton = createMuteButton();
-
         mainMenu();
         frame.setVisible(true);
         Sound.playBackground("Assets/Metal Slug 2 Prehistoric Site(MP3_160K).wav");
