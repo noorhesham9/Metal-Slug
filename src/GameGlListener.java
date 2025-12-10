@@ -47,7 +47,8 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
     Texture continueTexture;
     Texture exitTexture;
     Texture[] numbersTextures = new Texture[10];
-
+    Texture[] healthImages  = new Texture[6];
+    int playerHealth= 78;
     ArrayList<Texture> idleTextures = new ArrayList<>();
     ArrayList<Texture> walkingTextures = new ArrayList<>();
     ArrayList<Texture> shootingTextures = new ArrayList<>();
@@ -149,6 +150,10 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
                 File numFile = new File("Assets/numbers board (" + i + ").png");
                 numbersTextures[i] = TextureIO.newTexture(numFile, true);
             }
+            for (int i = 0; i < 5; i++) {
+                File numFile = new File("Assets/helthbar/"+i+".png");
+                healthImages [i] = TextureIO.newTexture(numFile, true);
+            }
 
             File w1 = new File("Assets/playerWalking/15.png");
             File w2 = new File("Assets/playerWalking/13.png");
@@ -199,7 +204,7 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
         drawBackground(gl);
         drawGame(gl);
         drawHUD(gl, drawable);
-
+        drawHealthBar(gl);
         if (isPaused) {
             drawPauseMenu(gl, drawable);
         } else {
@@ -303,6 +308,45 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             textRenderer.setColor(Color.RED);
             textRenderer.draw("GAME OVER!", width / 2 - 50, height / 2);
             textRenderer.endRendering();
+        }
+    }
+    private void drawHealthBar(GL gl) {
+        if (healthImages != null) {
+
+            int index = playerHealth;
+
+            if (playerHealth >= 80) {
+                index = 5;
+            } else if (playerHealth >= 60) {
+                index = 4;
+            } else if (playerHealth >= 40) {
+                index = 3;
+            } else if (playerHealth >= 20) {
+                index = 2;
+            }  else if (playerHealth >= 5) {
+                index = 1;
+            } else {
+                index = 0;
+            }
+
+            if (healthImages[index] != null) {
+                float x = 2;
+                float y = 82;
+                float w = 30;
+                float h = 8;
+
+                healthImages[index].enable();
+                healthImages[index].bind();
+
+                gl.glBegin(GL.GL_QUADS);
+                gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex2f(x, y + h);
+                gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex2f(x + w, y + h);
+                gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex2f(x + w, y);
+                gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex2f(x, y);
+                gl.glEnd();
+
+                healthImages[index].disable();
+            }
         }
     }
 
