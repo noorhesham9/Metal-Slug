@@ -10,7 +10,7 @@ import java.util.Map;
 public class GameApp {
     JFrame frame;
     JButton muteButton;
-    private static final Dimension MUTE_BUTTON_SIZE = new Dimension(80, 30);
+    private static final Dimension MUTE_BUTTON_SIZE = new Dimension(110, 30);
 
     public static void main(String[] args) {
         new GameApp();
@@ -35,10 +35,9 @@ public class GameApp {
         muteBtn.setPreferredSize(MUTE_BUTTON_SIZE);
         muteBtn.setMaximumSize(MUTE_BUTTON_SIZE);
         muteBtn.setMinimumSize(MUTE_BUTTON_SIZE);
-        muteBtn.setBackground(new Color(70, 70, 70));
+        muteBtn.setBackground(new Color(20, 130, 140));
         muteBtn.setForeground(Color.WHITE);
         muteBtn.setFocusPainted(false);
-        muteBtn.setBorder(BorderFactory.createLineBorder(Color.YELLOW, 2));
 
         muteBtn.addActionListener(e -> {
             Sound.toggleMute();
@@ -201,7 +200,7 @@ public class GameApp {
         centerPanel.add(Box.createVerticalStrut(50));
 
         JButton singlePlayer = createStyledButton("Single Player");
-        JButton multiplePlayers = createStyledButton("Multi Players");
+        JButton multiplePlayers = createStyledButton("Multi Player");
         JButton back = createStyledButton("Back");
 
         singlePlayer.addActionListener(e -> {
@@ -310,7 +309,7 @@ public class GameApp {
         };
 
         JLabel label1 = new JLabel(players == 1 ? "Username:" : "Player 1 Username:");
-        label1.setForeground(Color.WHITE);
+        label1.setForeground(Color.BLACK);
         label1.setFont(new Font("Arial", Font.BOLD, 16));
         label1.setAlignmentX(Component.CENTER_ALIGNMENT);
         JTextField nameField1 = new JTextField(20);
@@ -326,7 +325,7 @@ public class GameApp {
 
         if (players == 2) {
             JLabel label2 = new JLabel("Player 2 Username:");
-            label2.setForeground(Color.WHITE);
+            label2.setForeground(Color.BLACK);
             label2.setFont(new Font("Arial", Font.BOLD, 16));
             label2.setAlignmentX(Component.CENTER_ALIGNMENT);
             JTextField nameField2 = new JTextField(20);
