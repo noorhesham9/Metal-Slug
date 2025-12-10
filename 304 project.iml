@@ -10,15 +10,6 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="file://$MODULE_DIR$/../../../../../" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
           <root url="jar://$MODULE_DIR$/../../../Downloads/JOGLwin/JOGLwin/lib64/jogl.jar!/" />
           <root url="file://$MODULE_DIR$/../../../Downloads/JOGLwin/JOGLwin/lib64" />
         </CLASSES>

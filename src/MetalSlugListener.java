@@ -14,30 +14,36 @@ public class MetalSlugListener implements GLEventListener, KeyListener, MouseLis
 
     JFrame myFrame;
     boolean isPaused = false;
-    int timerSeconds = 30;
+    int timerSeconds = 0;
+    int score = 0;
     long lastTime;
     boolean isGameOver = false;
     String difficultyLevel;
 
     GLCanvas glCanvas;
     FPSAnimator animator;
-    TextRenderer timerRenderer;
-    TextRenderer menuRenderer;
+    TextRenderer textRenderer;
+
     Texture backgroundTexture;
+    Texture pauseButtonTexture;
+    Texture scoreBoardTexture;
+    Texture timerBoardTexture;
+    Texture gamePausedTexture;
+    Texture continueTexture;
+    Texture exitTexture;
+    Texture[] numbersTextures = new Texture[10];
 
     Rectangle continueBtnBounds = new Rectangle(35, 50, 30, 10);
     Rectangle exitBtnBounds = new Rectangle(35, 35, 30, 10);
-    Rectangle pauseGameBtnBounds = new Rectangle(92, 92, 4, 4);
+    Rectangle gamePausedBounds = new Rectangle(25, 70, 50, 15);
+
+    Rectangle pauseGameBtnBounds = new Rectangle(82, 88, 16, 8);
+    Rectangle scoreBoardBounds = new Rectangle(2, 88, 20, 8);
+    Rectangle timerBoardBounds = new Rectangle(40, 88, 20, 8);
 
     public MetalSlugListener(String difficulty) {
         this.difficultyLevel = difficulty;
-        if(difficulty.equals("Easy")) {
-            timerSeconds = 60;
-        } else if(difficulty.equals("Medium")) {
-            timerSeconds = 30;
-        } else if(difficulty.equals("Hard")) {
-            timerSeconds = 15;
-        }
+        timerSeconds = 0;
 
         GLCapabilities capabilities = new GLCapabilities();
         glCanvas = new GLCanvas(capabilities);
@@ -71,14 +77,37 @@ public class MetalSlugListener implements GLEventListener, KeyListener, MouseLis
         gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
 
         try {
-            File bgFile = new File("Assets/background1.png");
+            File bgFile = new File("Assets/Background.png");
             backgroundTexture = TextureIO.newTexture(bgFile, true);
+
+            File pauseFile = new File("Assets/Pauseboard (1).png");
+            pauseButtonTexture = TextureIO.newTexture(pauseFile, true);
+
+            File scoreFile = new File("Assets/scoreboard (1).png");
+            scoreBoardTexture = TextureIO.newTexture(scoreFile, true);
+
+            File timerFile = new File("Assets/timerboard (1).png");
+            timerBoardTexture = TextureIO.newTexture(timerFile, true);
+
+            File gpFile = new File("Assets/gamepausedboard (1).png");
+            gamePausedTexture = TextureIO.newTexture(gpFile, true);
+
+            File contFile = new File("Assets/continue (1).png");
+            continueTexture = TextureIO.newTexture(contFile, true);
+
+            File exFile = new File("Assets/exitboard (1).png");
+            exitTexture = TextureIO.newTexture(exFile, true);
+
+            for (int i = 0; i < 10; i++) {
+                File numFile = new File("Assets/numbers board (" + i + ").png");
+                numbersTextures[i] = TextureIO.newTexture(numFile, true);
+            }
+
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
 
-        timerRenderer = new TextRenderer(new Font("Stencil", Font.BOLD, 40));
-        menuRenderer = new TextRenderer(new Font("Arial", Font.BOLD, 28));
+        textRenderer = new TextRenderer(new Font("Stencil", Font.BOLD, 30));
     }
 
     @Override
@@ -130,33 +159,74 @@ public class MetalSlugListener implements GLEventListener, KeyListener, MouseLis
         int width = drawable.getWidth();
         int height = drawable.getHeight();
 
-        timerRenderer.beginRendering(width, height);
-        timerRenderer.setColor(Color.BLACK);
-        timerRenderer.draw("" + timerSeconds, (width / 2) + 2, height - 52);
-        timerRenderer.setColor(new Color(255, 215, 0));
-        timerRenderer.draw("" + timerSeconds, width / 2, height - 50);
-        timerRenderer.endRendering();
+        gl.glColor3f(1.0f, 1.0f, 1.0f);
 
-        if (!isPaused) {
-            gl.glColor3f(0.8f, 0.8f, 0.8f);
+        if (scoreBoardTexture != null) {
+            scoreBoardTexture.enable();
+            scoreBoardTexture.bind();
             gl.glBegin(GL.GL_QUADS);
-            gl.glVertex2f(pauseGameBtnBounds.x, pauseGameBtnBounds.y);
-            gl.glVertex2f(pauseGameBtnBounds.x + pauseGameBtnBounds.width, pauseGameBtnBounds.y);
-            gl.glVertex2f(pauseGameBtnBounds.x + pauseGameBtnBounds.width, pauseGameBtnBounds.y + pauseGameBtnBounds.height);
-            gl.glVertex2f(pauseGameBtnBounds.x, pauseGameBtnBounds.y + pauseGameBtnBounds.height);
+            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex2f(scoreBoardBounds.x, scoreBoardBounds.y + scoreBoardBounds.height);
+            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex2f(scoreBoardBounds.x + scoreBoardBounds.width, scoreBoardBounds.y + scoreBoardBounds.height);
+            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex2f(scoreBoardBounds.x + scoreBoardBounds.width, scoreBoardBounds.y);
+            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex2f(scoreBoardBounds.x, scoreBoardBounds.y);
             gl.glEnd();
+            scoreBoardTexture.disable();
+        }
 
-            menuRenderer.beginRendering(width, height);
-            menuRenderer.setColor(Color.BLACK);
-            menuRenderer.draw("||", (int) (width * 0.928), (int) (height * 0.93));
-            menuRenderer.endRendering();
+        drawNumber(gl, score, scoreBoardBounds.x + scoreBoardBounds.width + 1, scoreBoardBounds.y + 1, 4, 6, 3);
+
+        if (timerBoardTexture != null) {
+            timerBoardTexture.enable();
+            timerBoardTexture.bind();
+            gl.glBegin(GL.GL_QUADS);
+            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex2f(timerBoardBounds.x, timerBoardBounds.y + timerBoardBounds.height);
+            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex2f(timerBoardBounds.x + timerBoardBounds.width, timerBoardBounds.y + timerBoardBounds.height);
+            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex2f(timerBoardBounds.x + timerBoardBounds.width, timerBoardBounds.y);
+            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex2f(timerBoardBounds.x, timerBoardBounds.y);
+            gl.glEnd();
+            timerBoardTexture.disable();
+        }
+
+        drawNumber(gl, timerSeconds, timerBoardBounds.x + timerBoardBounds.width + 1, timerBoardBounds.y + 1, 4, 6, 2);
+
+        if (!isPaused && pauseButtonTexture != null) {
+            pauseButtonTexture.enable();
+            pauseButtonTexture.bind();
+            gl.glBegin(GL.GL_QUADS);
+            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex2f(pauseGameBtnBounds.x, pauseGameBtnBounds.y + pauseGameBtnBounds.height);
+            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex2f(pauseGameBtnBounds.x + pauseGameBtnBounds.width, pauseGameBtnBounds.y + pauseGameBtnBounds.height);
+            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex2f(pauseGameBtnBounds.x + pauseGameBtnBounds.width, pauseGameBtnBounds.y);
+            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex2f(pauseGameBtnBounds.x, pauseGameBtnBounds.y);
+            gl.glEnd();
+            pauseButtonTexture.disable();
         }
 
         if (isGameOver) {
-            menuRenderer.beginRendering(width, height);
-            menuRenderer.setColor(Color.RED);
-            menuRenderer.draw("TIME UP!", width / 2 - 50, height / 2);
-            menuRenderer.endRendering();
+            textRenderer.beginRendering(width, height);
+            textRenderer.setColor(Color.RED);
+            textRenderer.draw("GAME OVER!", width / 2 - 50, height / 2);
+            textRenderer.endRendering();
+        }
+    }
+
+    private void drawNumber(GL gl, int number, int x, int y, int width, int height, int minDigits) {
+        String numStr = String.format("%0" + minDigits + "d", number);
+
+        for (int i = 0; i < numStr.length(); i++) {
+            int digit = Character.getNumericValue(numStr.charAt(i));
+            Texture tex = numbersTextures[digit];
+
+            if (tex != null) {
+                tex.enable();
+                tex.bind();
+                gl.glBegin(GL.GL_QUADS);
+                gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex2f(x + (i * width), y + height);
+                gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex2f(x + (i * width) + width, y + height);
+                gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex2f(x + (i * width) + width, y);
+                gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex2f(x + (i * width), y);
+                gl.glEnd();
+                tex.disable();
+            }
         }
     }
 
@@ -167,31 +237,43 @@ public class MetalSlugListener implements GLEventListener, KeyListener, MouseLis
         gl.glVertex2f(100, 100); gl.glVertex2f(0, 100);
         gl.glEnd();
 
-        gl.glColor3f(0.2f, 0.6f, 0.2f);
-        gl.glBegin(GL.GL_QUADS);
-        gl.glVertex2f(continueBtnBounds.x, continueBtnBounds.y);
-        gl.glVertex2f(continueBtnBounds.x + continueBtnBounds.width, continueBtnBounds.y);
-        gl.glVertex2f(continueBtnBounds.x + continueBtnBounds.width, continueBtnBounds.y + continueBtnBounds.height);
-        gl.glVertex2f(continueBtnBounds.x, continueBtnBounds.y + continueBtnBounds.height);
-        gl.glEnd();
+        gl.glColor3f(1.0f, 1.0f, 1.0f);
 
-        gl.glColor3f(0.6f, 0.2f, 0.2f);
-        gl.glBegin(GL.GL_QUADS);
-        gl.glVertex2f(exitBtnBounds.x, exitBtnBounds.y);
-        gl.glVertex2f(exitBtnBounds.x + exitBtnBounds.width, exitBtnBounds.y);
-        gl.glVertex2f(exitBtnBounds.x + exitBtnBounds.width, exitBtnBounds.y + exitBtnBounds.height);
-        gl.glVertex2f(exitBtnBounds.x, exitBtnBounds.y + exitBtnBounds.height);
-        gl.glEnd();
+        if (gamePausedTexture != null) {
+            gamePausedTexture.enable();
+            gamePausedTexture.bind();
+            gl.glBegin(GL.GL_QUADS);
+            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex2f(gamePausedBounds.x, gamePausedBounds.y + gamePausedBounds.height);
+            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex2f(gamePausedBounds.x + gamePausedBounds.width, gamePausedBounds.y + gamePausedBounds.height);
+            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex2f(gamePausedBounds.x + gamePausedBounds.width, gamePausedBounds.y);
+            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex2f(gamePausedBounds.x, gamePausedBounds.y);
+            gl.glEnd();
+            gamePausedTexture.disable();
+        }
 
-        int w = drawable.getWidth();
-        int h = drawable.getHeight();
+        if (continueTexture != null) {
+            continueTexture.enable();
+            continueTexture.bind();
+            gl.glBegin(GL.GL_QUADS);
+            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex2f(continueBtnBounds.x, continueBtnBounds.y + continueBtnBounds.height);
+            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex2f(continueBtnBounds.x + continueBtnBounds.width, continueBtnBounds.y + continueBtnBounds.height);
+            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex2f(continueBtnBounds.x + continueBtnBounds.width, continueBtnBounds.y);
+            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex2f(continueBtnBounds.x, continueBtnBounds.y);
+            gl.glEnd();
+            continueTexture.disable();
+        }
 
-        menuRenderer.beginRendering(w, h);
-        menuRenderer.setColor(Color.WHITE);
-        menuRenderer.draw("GAME PAUSED", w / 2 - 80, h / 2 + 100);
-        menuRenderer.draw("CONTINUE", w / 2 - 60, h / 2 + 20);
-        menuRenderer.draw("EXIT MENU", w / 2 - 60, h / 2 - 80);
-        menuRenderer.endRendering();
+        if (exitTexture != null) {
+            exitTexture.enable();
+            exitTexture.bind();
+            gl.glBegin(GL.GL_QUADS);
+            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex2f(exitBtnBounds.x, exitBtnBounds.y + exitBtnBounds.height);
+            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex2f(exitBtnBounds.x + exitBtnBounds.width, exitBtnBounds.y + exitBtnBounds.height);
+            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex2f(exitBtnBounds.x + exitBtnBounds.width, exitBtnBounds.y);
+            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex2f(exitBtnBounds.x, exitBtnBounds.y);
+            gl.glEnd();
+            exitTexture.disable();
+        }
     }
 
     private void drawGame(GL gl) {
@@ -199,12 +281,8 @@ public class MetalSlugListener implements GLEventListener, KeyListener, MouseLis
 
     private void updateTimer() {
         if (!isGameOver && System.currentTimeMillis() - lastTime > 1000) {
-            timerSeconds--;
+            timerSeconds++;
             lastTime = System.currentTimeMillis();
-            if (timerSeconds <= 0) {
-                timerSeconds = 0;
-                isGameOver = true;
-            }
         }
     }
 
@@ -244,10 +322,12 @@ public class MetalSlugListener implements GLEventListener, KeyListener, MouseLis
         double mouseY = ((h - e.getY()) / h) * 100.0;
 
         if (isPaused) {
-            if (mouseX > 30 && mouseX < 70 && mouseY > 45) {
+            if (mouseX >= continueBtnBounds.x && mouseX <= continueBtnBounds.x + continueBtnBounds.width &&
+                    mouseY >= continueBtnBounds.y && mouseY <= continueBtnBounds.y + continueBtnBounds.height) {
                 isPaused = false;
             }
-            else if (mouseX > 30 && mouseX < 70 && mouseY <= 45 && mouseY > 20) {
+            else if (mouseX >= exitBtnBounds.x && mouseX <= exitBtnBounds.x + exitBtnBounds.width &&
+                    mouseY >= exitBtnBounds.y && mouseY <= exitBtnBounds.y + exitBtnBounds.height) {
                 myFrame.dispose();
                 if (animator != null) animator.stop();
                 new GameApp();
