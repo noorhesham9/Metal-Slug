@@ -162,6 +162,7 @@ public class GameApp {
                             "• Jump: 'W'\n" +
                             "• Shoot: 'F' Key\n\n" +
                             "⚠️ WARNINGS:\n" +
+                            "To add Ai PLayer: H\n" +
                             "• Watch out for Zombies and Enemy Soldiers!\n" +
                             "• Dodge bombs dropped by the Helicopter!\n" +
                             "• Press 'P' to Pause anytime.\n\n" +

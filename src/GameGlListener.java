@@ -186,7 +186,8 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
 
     Texture[] numbersTextures = new Texture[10];
     Texture[] healthImages = new Texture[6];
-
+    AIHelper aiHelper = new AIHelper(60, 15);
+    boolean aiActive = false;
     int playerHealth = 100;
     ArrayList<Texture> idleTextures = new ArrayList<>();
     ArrayList<Texture> walkingTextures = new ArrayList<>();
@@ -415,7 +416,10 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             drawHUD(gl, drawable);
             checkGameStatus();
             drawHealthBar(gl);
-            if (isMultiplayer) drawPlayer2HealthBar(gl);
+            if (isMultiplayer) drawPlayer2HealthBar(gl); if (aiActive && aiHelper.active) {
+                drawAIHealthBar(gl);
+            }
+
         } else {
             renderEndScreen(gl, drawable.getWidth(), drawable.getHeight());
             if (!updatedScores) {
@@ -428,6 +432,41 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             drawPauseMenu(gl, drawable);
         } else {
             updateTimer();
+        }
+    }private void drawAIHealthBar(GL gl) {
+        if (healthImages != null) {
+            int index;
+            if (aiHelper.health >= 80) index = 5;
+            else if (aiHelper.health >= 60) index = 4;
+            else if (aiHelper.health >= 40) index = 3;
+            else if (aiHelper.health >= 20) index = 2;
+            else if (aiHelper.health >= 10) index = 1;
+            else index = 0;
+
+            if (healthImages[index] != null) {
+                float x = 68;
+                float y = 70;
+                float w = 30;
+                float h = 8;
+
+                gl.glColor3f(1.0f, 1.0f, 1.0f);
+                gl.glEnable(GL.GL_BLEND);
+                gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
+                healthImages[index].enable();
+                healthImages[index].bind();
+                gl.glBegin(GL.GL_QUADS);
+                gl.glTexCoord2f(0.0f, 0.0f);
+                gl.glVertex2f(x, y + h);
+                gl.glTexCoord2f(1.0f, 0.0f);
+                gl.glVertex2f(x + w, y + h);
+                gl.glTexCoord2f(1.0f, 1.0f);
+                gl.glVertex2f(x + w, y);
+                gl.glTexCoord2f(0.0f, 1.0f);
+                gl.glVertex2f(x, y);
+                gl.glEnd();
+                healthImages[index].disable();
+                gl.glDisable(GL.GL_BLEND);
+            }
         }
     }
 
@@ -444,7 +483,11 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
 
         if (!isPaused && !isGameOver) {
             gl.glDisable(GL.GL_DEPTH_TEST);
-
+            if (aiActive && aiHelper.active) {
+                aiHelper.update(enemies, playerX, playerY);
+                aiHelper.checkCollisions(enemies, enemyBullets, helicopterBombs);
+                aiHelper.draw(gl);
+            }
             if (playerHealth > 0) {
                 if (leftPressed) {
                     playerX -= playerSpeed;
@@ -786,6 +829,16 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
                     playerHealth -= 30;
                     score -= 10;
                     if (score < 0) score = 0;
+                }if (aiActive && aiHelper.active &&
+                        bomb.x < aiHelper.x + aiHelper.width &&
+                        bomb.x + bomb.width > aiHelper.x &&
+                        bomb.y < aiHelper.y + aiHelper.height &&
+                        bomb.y + bomb.height > aiHelper.y) {
+                    bomb.active = false;
+                    Sound.playSound("Assets/Sounds/Explosion.wav");
+                    spawnExplosion(bomb.x, bomb.y);
+                    aiHelper.health -= 30;
+                    if (aiHelper.health < 0) aiHelper.health = 0;
                 }
                 if (isMultiplayer && player2Health > 0 && bomb.x < player2X + player2Width && bomb.x + bomb.width > player2X && bomb.y < player2Y + player2Height && bomb.y + bomb.height > player2Y) {
                     bomb.active = false;
@@ -1157,10 +1210,12 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
     private void drawPlayer2HealthBar(GL gl) {
         if (healthImages != null) {
             int index;
-            if (player2Health >= 80) index = 4;
-            else if (player2Health >= 60) index = 3;
-            else if (player2Health >= 40) index = 2;
-            else if (player2Health >= 20) index = 1;
+            if (player2Health >= 80) index = 5;
+            else if (player2Health >= 60) index = 4;
+            else if (player2Health >= 40) index = 3;
+            else if (player2Health >= 20) index = 2;
+            else if (player2Health >= 10) index = 1;
+
             else index = 0;
             if (healthImages[index] != null) {
                 float x = 2;
@@ -1544,7 +1599,18 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             }
             return;
         }
-
+        if ( e.getKeyCode() == KeyEvent.VK_H) {
+            aiActive = !aiActive;
+            if (aiActive) {
+                aiHelper.activate();
+                Sound.playSound("Assets/Sounds/Powerup.wav");
+                System.out.println("AI Helper Activated!");
+            } else {
+                aiHelper.deactivate();
+                System.out.println("AI Helper Deactivated!");
+            }
+            return;
+        }
         if (playerHealth > 0) {
             if (e.getKeyCode() == KeyEvent.VK_LEFT) {
                 leftPressed = true;
@@ -1692,5 +1758,299 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
 
     @Override
     public void mouseExited(MouseEvent e) {
+    }class AIHelper {
+        float x, y;
+        boolean facingRight = false;
+        boolean active = false;
+        float width = 10, height = 15;
+        int health = 100;
+        boolean isWalking = false;
+        boolean isShooting = false;
+        boolean isJumping = false;
+        float verticalVelocity = 0;
+        long lastShotTime = 0;
+        final float SPEED = 0.3f;
+        final long SHOOT_COOLDOWN = 1000;
+        long lastDecisionTime = 0;
+        final long DECISION_INTERVAL = 500;
+
+
+        float targetX;
+        boolean hasTarget = false;
+
+        public AIHelper(float startX, float startY) {
+            this.x = startX;
+            this.y = startY;
+        }
+
+        public void activate() {
+            this.active = true;
+            this.health = 100;
+            this.lastDecisionTime = System.currentTimeMillis();
+        }
+
+        public void deactivate() {
+            this.active = false;
+        }
+
+        public void update(ArrayList<Enemy> enemies, float playerX, float playerY) {
+            if (!active) return;
+
+            long currentTime = System.currentTimeMillis();
+
+
+
+            if (isJumping) {
+                y += verticalVelocity;
+                verticalVelocity -= gravity;
+                if (y <= groundLevel) {
+                    y = groundLevel;
+                    isJumping = false;
+                    verticalVelocity = 0;
+                }
+            }
+
+
+            if (currentTime - lastDecisionTime > DECISION_INTERVAL) {
+                makeDecision(enemies, playerX, playerY);
+                lastDecisionTime = currentTime;
+            }
+
+
+            if (hasTarget) {
+                float distanceToTarget = Math.abs(targetX - x);
+                if (distanceToTarget > 3) {
+                    if (targetX > x) {
+                        x += SPEED;
+                        facingRight = true;
+                        isWalking = true;
+                    } else if (targetX < x) {
+                        x -= SPEED;
+                        facingRight = false;
+                        isWalking = true;
+                    }
+                } else {
+                    isWalking = false;
+                    hasTarget = false;
+
+                    if (random.nextFloat() < 0.3 && !isJumping) {
+                        isJumping = true;
+                        verticalVelocity = jumpStrength;
+                    }
+                }
+            }
+
+            Enemy nearestEnemy = findNearestEnemy(enemies);
+            if (nearestEnemy != null && nearestEnemy.active && nearestEnemy.state != 2) {
+                float distance = Math.abs(nearestEnemy.x - x);
+                if (distance < 40) {
+                    if (currentTime - lastShotTime > SHOOT_COOLDOWN) {
+                        isShooting = true;
+                        lastShotTime = currentTime;
+
+
+                        boolean shouldFaceRight = nearestEnemy.x > x;
+                        if (shouldFaceRight != facingRight) {
+                            facingRight = shouldFaceRight;
+                        }
+
+
+                        float bulletStartX = facingRight ? x + width : x - 5;
+                        bullets.add(new Bullet(bulletStartX, y + 8, facingRight, false));
+                        Sound.playSound("Assets/Sounds/Shoot2.wav");
+                    }
+                }
+            }
+
+            if (!hasTarget && isWalking) {
+                isWalking = false;
+            }
+
+            if (isShooting && currentTime - lastShotTime > 300) {
+                isShooting = false;
+            }
+
+            final float MAX_X = 100f - width;
+            if (x < 0) x = 0;
+            if (x > MAX_X) x = MAX_X;
+        }
+
+        private void makeDecision(ArrayList<Enemy> enemies, float playerX, float playerY) {
+            Enemy nearestEnemy = findNearestEnemy(enemies);
+
+            if (nearestEnemy != null && nearestEnemy.active && nearestEnemy.state != 2) {
+                float distance = Math.abs(nearestEnemy.x - x);
+
+                if (distance < 50) {
+                    float preferredDistance = 25;
+
+                    if (distance > preferredDistance + 10) {
+                        targetX = nearestEnemy.x > x ?
+                                nearestEnemy.x - preferredDistance :
+                                nearestEnemy.x + preferredDistance;
+                        hasTarget = true;
+                    } else if (distance < preferredDistance - 10) {
+                        targetX = nearestEnemy.x > x ?
+                                x - 15 :
+                                x + 15;
+                        hasTarget = true;
+                    }
+                    return;
+                }
+            }
+
+            float distanceToPlayer = Math.abs(playerX - x);
+            if (distanceToPlayer > 20) {
+                float followDistance = 15;
+                if (playerX > x) {
+                    targetX = playerX - followDistance;
+                } else {
+                    targetX = playerX + followDistance;
+                }
+                hasTarget = true;
+            }
+        }
+
+        private Enemy findNearestEnemy(ArrayList<Enemy> enemies) {
+            Enemy nearest = null;
+            float minDistance = Float.MAX_VALUE;
+
+            for (Enemy enemy : enemies) {
+                if (enemy.active && enemy.state != 2) {
+                    float distance = Math.abs(enemy.x - x);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        nearest = enemy;
+                    }
+                }
+            }
+            return nearest;
+        }
+
+        public void draw(GL gl) {
+            if (!active) return;
+
+            ArrayList<Texture> currentAnim;
+            if (isShooting) {
+                currentAnim = shootingTextures;
+            } else if (isJumping && !jumpTextures.isEmpty()) {
+                currentAnim = jumpTextures;
+            } else if (isWalking) {
+                currentAnim = walkingTextures;
+            } else {
+                currentAnim = idleTextures;
+            }
+
+            if (currentAnim.isEmpty()) return;
+
+            Texture frame = currentAnim.get(currentFrameIndex % currentAnim.size());
+            if (frame != null) {
+                gl.glEnable(GL.GL_BLEND);
+                gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
+                frame.enable();
+                frame.bind();
+                gl.glColor3f(1, 1, 1);
+                gl.glBegin(GL.GL_QUADS);
+
+                if (facingRight) {
+                    gl.glTexCoord2f(0.0f, 0.0f);
+                    gl.glVertex2f(x, y + height);
+                    gl.glTexCoord2f(1.0f, 0.0f);
+                    gl.glVertex2f(x + width, y + height);
+                    gl.glTexCoord2f(1.0f, 1.0f);
+                    gl.glVertex2f(x + width, y);
+                    gl.glTexCoord2f(0.0f, 1.0f);
+                    gl.glVertex2f(x, y);
+                } else {
+                    gl.glTexCoord2f(1.0f, 0.0f);
+                    gl.glVertex2f(x, y + height);
+                    gl.glTexCoord2f(0.0f, 0.0f);
+                    gl.glVertex2f(x + width, y + height);
+                    gl.glTexCoord2f(0.0f, 1.0f);
+                    gl.glVertex2f(x + width, y);
+                    gl.glTexCoord2f(1.0f, 1.0f);
+                    gl.glVertex2f(x, y);
+                }
+                gl.glEnd();
+                frame.disable();
+
+                drawAI_Icon(gl);
+
+                gl.glDisable(GL.GL_BLEND);
+            }
+        }
+
+        private void drawAI_Icon(GL gl) {
+            if (p2Icon != null) {
+                float iconW = 5;
+                float iconH = 5;
+                float iconX = x + (width / 2) - (iconW / 2);
+                float iconY = y + height + 2;
+
+                gl.glColor3f(1.0f, 0.5f, 0.0f);
+
+                p2Icon.enable();
+                p2Icon.bind();
+                gl.glBegin(GL.GL_QUADS);
+                gl.glTexCoord2f(0.0f, 0.0f);
+                gl.glVertex2f(iconX, iconY + iconH);
+                gl.glTexCoord2f(1.0f, 0.0f);
+                gl.glVertex2f(iconX + iconW, iconY + iconH);
+                gl.glTexCoord2f(1.0f, 1.0f);
+                gl.glVertex2f(iconX + iconW, iconY);
+                gl.glTexCoord2f(0.0f, 1.0f);
+                gl.glVertex2f(iconX, iconY);
+                gl.glEnd();
+                p2Icon.disable();
+
+                gl.glColor3f(1, 1, 1);
+            }
+        }
+
+        public void checkCollisions(ArrayList<Enemy> enemies, ArrayList<EnemyBullet> enemyBullets, ArrayList<Bomb> bombs) {
+
+            for (EnemyBullet eb : enemyBullets) {
+                if (!eb.active) continue;
+                if (eb.x < x + width && eb.x + eb.width > x &&
+                        eb.y < y + height && eb.y + eb.height > y) {
+                    eb.active = false;
+                    health -= 10;
+                    if (health < 0) health = 0;
+                    break;
+                }
+            }
+
+            for (Enemy e : enemies) {
+                if (e.active && e.state != 2) {
+                    if (e.x < x + width && e.x + e.width > x &&
+                            e.y < y + height && e.y + e.height > y) {
+                        e.active = false;
+//                        Sound.playSound("Assets/Sounds/Explosion.wav");
+                        spawnExplosion(x + width / 2, y);
+                        health -= 30;
+                        if (health < 0) health = 0;
+                    }
+                }
+            }
+
+
+            for (Bomb bomb : bombs) {
+                if (bomb.active) {
+                    if (bomb.x < x + width && bomb.x + bomb.width > x &&
+                            bomb.y < y + height && bomb.y + bomb.height > y) {
+                        bomb.active = false;
+                        Sound.playSound("Assets/Sounds/Explosion.wav");
+                        spawnExplosion(bomb.x, bomb.y);
+                        health -= 30;
+                        if (health < 0) health = 0;
+                    }
+                }
+            }
+
+            if (health <= 0) {
+                active = false;
+                Sound.playSound("Assets/Sounds/Death.wav");
+            }
+        }
     }
 }
