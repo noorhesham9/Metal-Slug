@@ -8,5 +8,4 @@ sheeka:75
 weeka:65
 dfgdf:60
 seeka:60
-fd:0
-vdc:0
+bv:0

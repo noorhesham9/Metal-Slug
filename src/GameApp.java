@@ -249,7 +249,7 @@ public class GameApp {
         centerPanel.add(Box.createVerticalStrut(50));
         centerPanel.add(gameTitle);
         centerPanel.add(Box.createVerticalStrut(50));
-        JButton zombieModeBtn = createStyledImageButton("Assets/button/zombie-mode.png", Large_BUTTON_SIZE);
+//        JButton zombieModeBtn = createStyledImageButton("Assets/button/zombie-mode.png", Large_BUTTON_SIZE);
         JButton singlePlayer = createStyledImageButton("Assets/button/single player (1).png", Large_BUTTON_SIZE);
         JButton multiplePlayers = createStyledImageButton("Assets/button/Multi player (1).png", Large_BUTTON_SIZE);
         JButton ZompieMOde = createStyledImageButton("Assets/button/single player (1).png", Large_BUTTON_SIZE);
@@ -269,15 +269,15 @@ public class GameApp {
         });
 
 
-        zombieModeBtn.addActionListener(e -> {
-            Sound.playSound("Assets/mixkit-drums-of-war-2784.wav");
-//            showPlayerMode.dispose();
-
-            new ZombieModeListener("Hard");
-//            Sound.playBackground("Assets/ZombieMode/MusicBackGround2.wav");
-
-
-        });
+//        zombieModeBtn.addActionListener(e -> {
+//            Sound.playSound("Assets/mixkit-drums-of-war-2784.wav");
+////            showPlayerMode.dispose();
+//
+////            new ZombieModeListener("Hard");
+////            Sound.playBackground("Assets/ZombieMode/MusicBackGround2.wav");
+//
+//
+//        });
 
 //        ZompieMOde.addActionListener(e -> {
 //            Sound.playSound("Assets/mixkit-drums-of-war-2784.wav");
@@ -297,7 +297,7 @@ public class GameApp {
         centerPanel.add(Box.createVerticalStrut(20));
         centerPanel.add(multiplePlayers);
         centerPanel.add(Box.createVerticalStrut(20));
-        centerPanel.add(zombieModeBtn);
+//        centerPanel.add(zombieModeBtn);
 
         centerPanel.add(Box.createVerticalStrut(20));
         centerPanel.add(back);
