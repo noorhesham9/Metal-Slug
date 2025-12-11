@@ -67,9 +67,9 @@ public class GameApp {
 
     private JButton createStyledImageButton(String path, Dimension size) {
         JButton btn = new JButton();
-        btn.setPreferredSize(size); // 💡 استخدام المعامل size
-        btn.setMaximumSize(size);   // 💡 استخدام المعامل size
-        btn.setMinimumSize(size);   // 💡 استخدام المعامل size
+        btn.setPreferredSize(size);
+        btn.setMaximumSize(size);
+        btn.setMinimumSize(size);
         btn.setAlignmentX(Component.CENTER_ALIGNMENT);
         btn.setOpaque(false);
         btn.setContentAreaFilled(false);

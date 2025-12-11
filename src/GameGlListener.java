@@ -1,11 +1,9 @@
 import javax.media.opengl.*;
-
 import com.sun.opengl.util.FPSAnimator;
 import com.sun.opengl.util.j2d.TextRenderer;
 import com.sun.opengl.util.texture.Texture;
 import com.sun.opengl.util.texture.TextureCoords;
 import com.sun.opengl.util.texture.TextureIO;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -131,7 +129,6 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
 
     ArrayList<Explosion> explosions = new ArrayList<>();
     Texture[] explosionTextures = new Texture[1];
-    //    final float ENEMY_SCALE = 1.5f;
     JFrame myFrame;
     boolean isPaused = false;
     boolean isMultiplayer = false;
@@ -162,6 +159,7 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
     Texture Enter;
     Texture To;
     Texture Exit;
+    Texture Restart;
     Texture bulletTexture;
     Texture muteOnTexture;
     Texture muteOffTexture;
@@ -179,8 +177,6 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
 
     Texture[] numbersTextures = new Texture[10];
     Texture[] healthImages = new Texture[6];
-//    Texture[] enemy1_Scintest = new Texture[3];
-//    Texture[] enemy_zombi = new Texture[3];
 
     int playerHealth = 100;
     ArrayList<Texture> idleTextures = new ArrayList<>();
@@ -195,7 +191,7 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
     boolean leftPressed = false;
     boolean rightPressed = false;
     boolean isWalking = false;
-     boolean isJumping = false;
+    boolean isJumping = false;
     float verticalVelocity = 0;
     float gravity = 0.15f;
     float jumpStrength = 3.2f;
@@ -295,9 +291,17 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             exitTexture = TextureIO.newTexture(new File("Assets/exitboard (1).png"), true);
             winTexture = TextureIO.newTexture(new File("Assets/youwin.png"), true);
             loseTexture = TextureIO.newTexture(new File("Assets/youlose.png"), true);
-            Enter = TextureIO.newTexture(new File("Assets/word enter.png"), true);
+           // Enter = TextureIO.newTexture(new File("Assets/word enter.png"), true);
             To = TextureIO.newTexture(new File("Assets/word to.png"), true);
             Exit = TextureIO.newTexture(new File("Assets/exit.png"), true);
+
+            File restartFile = new File("Assets/button/Restart (1).png");
+            if (restartFile.exists()) {
+                Restart = TextureIO.newTexture(restartFile, true);
+            } else {
+                System.err.println("Restart button asset not found!");
+            }
+
             muteOnTexture = TextureIO.newTexture(new File("Assets/MuteOff (1).png"), true);
             muteOffTexture = TextureIO.newTexture(new File("Assets/MuteOn (1).png"), true);
 
@@ -311,9 +315,8 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
 
             int i = 1;
             while (true) {
-                // افترض أن الصور مرقمة من 1 إلى 10 (مثل Z_walk_1.png)
                 File f = new File("Assets/enemy/Enemy" + i + " (1).png");
-                if (!f.exists()) break; // التوقف عندما لا تجد الصورة التالية
+                if (!f.exists()) break;
                 enemy_zombi_walk.add(TextureIO.newTexture(f, true));
                 i++;
             }
@@ -321,7 +324,6 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             enemy_zombi_death = TextureIO.newTexture(new File("Assets/enemy/Enemy1Dead.png"), true);
             i = 1;
             while (true) {
-                // افترض أن الصور مرقمة من 1 إلى 10 (مثل S_walk_1.png)
                 File f = new File("Assets/enemy2/Enemy2 " + i + " (1).png");
                 if (!f.exists()) break;
                 enemy1_Scintest_walk.add(TextureIO.newTexture(f, true));
@@ -639,36 +641,27 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
         long currentTime = System.currentTimeMillis();
         for (int i = 0; i < enemies.size(); i++) {
             Enemy e = enemies.get(i);
-            // تجاهل الأعداء غير النشطين أو الميتين
             if (!e.active || e.state == 2) continue;
 
             float target = playerX;
-//             if (isMultiplayer && player2Health > 0 && playerHealth <= 0) target = player2X;
 
-            // المنطق الأصلي (الذي كان يعمل):
             if (e.x < target) e.facingRight = false;
             else e.facingRight = true;
 
             e.state = 0;
             float speed = (e.type == 0) ? 0.08f : 0.2f;
 
-            // 2. 🚶‍♂️ الحركة
             if (e.x < target) e.x += speed;
             else e.x -= speed;
 
             if (currentTime - e.lastShotTime >= ENEMY_SHOOT_INTERVAL) {
                 boolean reversedDirection = !e.facingRight;
 
-
-                // تحديد نقطة الانطلاق لتجنب اصطدام الطلقة بالعدو نفسه
                 float startX = reversedDirection ? e.x + e.width : e.x - 5;
                 float startY = e.y + (e.height / 2.0f);
 
-                // 💡 التعديل الأهم: تمرير نوع العدو (e.type)
-                // نستخدم دالة البناء الجديدة: new EnemyBullet(x, y, facingRight, type)
                 enemyBullets.add(new EnemyBullet(startX, startY, reversedDirection, e.type));
 
-                // Sound.playSound("Assets/Sounds/Gettinghit.wav"); // عادةً صوت إطلاق النار يختلف
                 e.lastShotTime = currentTime;
             }
         }
@@ -815,48 +808,41 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             if (!e.active) continue;
             float currentScale;
 
-            if (e.type == 1) { // العدو type 1 (العالم/Scientist)
-                currentScale = 1.5f; // 💡 تكبير العدو 1 إلى 2.0 (أو القيمة التي تراها مناسبة)
-            } else { // العدو type 0 (الزومبي) أو أي نوع آخر
-                currentScale = 2.0f; // حجمه الافتراضي (إذا كان 1.0) أو 1.5f إذا كنت تريد الحجم السابق
+            if (e.type == 1) {
+                currentScale = 1.5f;
+            } else {
+                currentScale = 2.0f;
             }
             Texture currentTex = null;
             ArrayList<Texture> walkTextures = null;
             Texture deathTexture = null;
             Texture attackTexture = null;
 
-            // 1. تحديد التكستشرز بناءً على نوع العدو
-            if (e.type == 0) { // الزومبي
+            if (e.type == 0) {
                 walkTextures = enemy_zombi_walk;
                 deathTexture = enemy_zombi_death;
                 attackTexture = enemy_zombi_attack;
-            } else if (e.type == 1) { // العالم
+            } else if (e.type == 1) {
                 walkTextures = enemy1_Scintest_walk;
                 deathTexture = enemy1_Scintest_death;
                 attackTexture = enemy1_Scintest_attack;
             }
 
-            // 2. تحديد حالة الرسم
-            if (e.state == 2) { // حالة الموت
+            if (e.state == 2) {
                 currentTex = deathTexture;
-                // إخفاء العدو بعد انتهاء مدة الموت
                 if (currentTime - e.deathStartTime > 500) {
                     e.active = false;
                 }
-            } else if (e.state == 1) { // حالة الهجوم/إطلاق النار (إذا تم تعيينها في updateEnemies)
-                // نستخدم صورة الهجوم (الطلقة)
+            } else if (e.state == 1) {
                 currentTex = attackTexture;
-            } else { // حالة الحركة (e.state == 0)
+            } else {
                 if (walkTextures != null && !walkTextures.isEmpty()) {
-                    // 💡 استخدام الـ 10 صور للحركة عبر مؤشر الإطار
                     int frame = currentFrameIndex % walkTextures.size();
                     currentTex = walkTextures.get(frame);
                 }
             }
 
             if (currentTex == null) continue;
-
-            // 3. الرسم (بما أنك لا تستخدم glTranslate/glScale، سنرسم مباشرة)
 
             float w = e.width * currentScale;
             float h = e.height * currentScale;
@@ -871,7 +857,6 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             currentTex.bind();
 
             gl.glBegin(GL.GL_QUADS);
-            // نستخدم الإحداثيات المرجعية (0.0f - 1.0f) للتكستشر
             if (e.facingRight) {
                 gl.glTexCoord2f(0.0f, 0.0f);
                 gl.glVertex2f(drawX, drawY + h);
@@ -882,7 +867,6 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
                 gl.glTexCoord2f(0.0f, 1.0f);
                 gl.glVertex2f(drawX, drawY);
             } else {
-                // عكس الإحداثيات لقلب الصورة أفقياً
                 gl.glTexCoord2f(1.0f, 0.0f);
                 gl.glVertex2f(drawX, drawY + h);
                 gl.glTexCoord2f(0.0f, 0.0f);
@@ -901,28 +885,25 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
 
 
     private void drawEnemyBullets(GL gl) {
-//        Texture tex = enemy_zombi_attack;
 
         gl.glEnable(GL.GL_BLEND);
-        gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA); // تأكد من وجود دالة المزج
+        gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
         gl.glColor3f(1, 1, 1);
 
-// 🆕 متغير لتتبع التكستشر الذي تم ربطه مؤخراً
         Texture currentBoundTex = null;
 
         for (EnemyBullet b : enemyBullets) {
             if (!b.active) continue;
 
             Texture requiredTex = null;
-            if (b.type == 0) { // طلقة الزومبي
+            if (b.type == 0) {
                 requiredTex = enemy_zombi_attack;
-            } else if (b.type == 1) { // طلقة العالم/Scientist
+            } else if (b.type == 1) {
                 requiredTex = enemy1_Scintest_attack;
             }
 
             if (requiredTex == null) continue;
 
-            // 🆕 1. فك ربط التكستشر القديم وربط الجديد إذا كان مختلفاً
             if (requiredTex != currentBoundTex) {
                 if (currentBoundTex != null) currentBoundTex.disable();
                 requiredTex.enable();
@@ -930,7 +911,6 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
                 currentBoundTex = requiredTex;
             }
 
-            // 2. الرسم
             gl.glBegin(GL.GL_QUADS);
             gl.glTexCoord2f(0.0f, 0.0f);
             gl.glVertex2f(b.x, b.y + b.height);
@@ -943,7 +923,6 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
             gl.glEnd();
         }
 
-        // 3. فك ربط آخر تكستشر تم استخدامه
         if (currentBoundTex != null) {
             currentBoundTex.disable();
         }
@@ -1430,10 +1409,13 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
         gl.glMatrixMode(GL.GL_MODELVIEW);
         gl.glPushMatrix();
         gl.glLoadIdentity();
+
+        // ⭐ التعديل: إحداثيات الأزرار الأفقية أسفل النتيجة ⭐
         float btnSize = 0.2f;
-        float startX = 0.27f;
-        float posY = 0.25f;
-        float spacing = 0.12f;
+        float startX = 0.20f;
+        float posY = 0.40f;   // موضع عمودي أعلى (أسفل النتيجة مباشرة)
+        float spacing = 0.22f;
+
         gl.glMatrixMode(GL.GL_PROJECTION);
         gl.glPushMatrix();
         gl.glLoadIdentity();
@@ -1442,15 +1424,21 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
         gl.glDisable(GL.GL_DEPTH_TEST);
         gl.glEnable(GL.GL_BLEND);
         gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
-        Texture[] buttons = {Enter, To, Exit};
+
+        // ⭐ الأزرار في صف أفقي واحد: Restart، ثم Enter، ثم Exit ⭐
+        Texture[] buttons = {Restart, Enter, Exit};
+
         for (int i = 0; i < buttons.length; i++) {
             Texture btnTex = buttons[i];
             if (btnTex == null) continue;
+
             float currentX = startX + (i * spacing);
+
             gl.glColor3f(1, 1, 1);
             btnTex.enable();
             btnTex.bind();
             TextureCoords coords = btnTex.getImageTexCoords();
+
             gl.glBegin(GL.GL_QUADS);
             gl.glTexCoord2f(coords.left(), coords.bottom());
             gl.glVertex2f(currentX, posY);
@@ -1629,6 +1617,42 @@ public class GameGlListener implements GLEventListener, KeyListener, MouseListen
         } else {
             if (mouseX >= pauseGameBtnBounds.x && mouseX <= pauseGameBtnBounds.x + pauseGameBtnBounds.width && mouseY >= pauseGameBtnBounds.y && mouseY <= pauseGameBtnBounds.y + pauseGameBtnBounds.height)
                 isPaused = true;
+        }
+
+        if (!isGameRunning) {
+            float btnSize = 0.2f;
+            float startX = 0.20f;
+            float posY = 0.40f;
+            float spacing = 0.22f;
+
+            float button_bottom = posY * 100;
+            float button_top = (posY + btnSize) * 100;
+
+            // 1. فحص زر Restart (الموقع i=0)
+            float restartX_left = startX * 100;
+            float restartX_right = (startX + btnSize) * 100;
+
+            if (mouseX >= restartX_left && mouseX <= restartX_right &&
+                    mouseY >= button_bottom && mouseY <= button_top) {
+
+                myFrame.dispose();
+                Sound.stop();
+                new GameGlListener(this.difficultyLevel, this.isMultiplayer);
+                return;
+            }
+
+            // 2. فحص زر Exit (الموقع i=2)
+            float exitX_left = (startX + 2 * spacing) * 100;
+            float exitX_right = (startX + 2 * spacing + btnSize) * 100;
+
+            if (mouseX >= exitX_left && mouseX <= exitX_right &&
+                    mouseY >= button_bottom && mouseY <= button_top) {
+
+                myFrame.dispose();
+                if (animator != null) animator.stop();
+                new GameApp();
+                return;
+            }
         }
     }
 
