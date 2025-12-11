@@ -3,17 +3,11 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.io.*;
 import javax.imageio.ImageIO;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class GameApp {
     JFrame frame;
-    public static int playerss;
-    public static String PlayerName1;
-    public static String PlayerName2;
     JButton muteButton;
     private static final Dimension MUTE_BUTTON_SIZE = new Dimension(50, 50);
     private static final String MUTE_ON_PATH = "Assets/MuteOn (1).png";
@@ -124,13 +118,19 @@ public class GameApp {
 
         instructions.addActionListener(e -> {
             JOptionPane.showMessageDialog(frame,
-                    "Game Instructions:\n" +
-                            "1. Use Arrow Keys to Move.\n" +
-                            "2. Press 'Space' to Shoot.\n" +
-                            "3. Avoid enemies and obstacles.\n" +
-                            "4. Survive as long as possible!\n\n" +
-                            "Multiplayer Controls:\n" +
-                            "Player 2: A (Left), D (Right), F (Shoot).\n\n" +
+                    "MISSION BRIEFING:\n\n" +
+                            "Objective: Survive the enemy attack until the timer runs out!\n\n" +
+                            "🎮 PLAYER 1 CONTROLS:\n" +
+                            "• Move: Left / Right Arrows\n" +
+                            "• Jump: Up Arrow\n" +
+                            "• Shoot: Spacebar\n\n" +
+                            "🎮 PLAYER 2 CONTROLS (Multiplayer):\n" +
+                            "• Move: 'A' (Left) / 'D' (Right)\n" +
+                            "• Shoot: 'F' Key\n\n" +
+                            "⚠️ WARNINGS:\n" +
+                            "• Watch out for Zombies and Enemy Soldiers!\n" +
+                            "• Dodge bombs dropped by the Helicopter!\n" +
+                            "• Press 'P' to Pause anytime.\n\n" +
                             "Good Luck, Soldier!",
                     "How to Play",
                     JOptionPane.INFORMATION_MESSAGE);
@@ -254,7 +254,6 @@ public class GameApp {
     }
 
     void showNameInput(int players) {
-        playerss = players;
         JFrame nameFrame = new JFrame("Gun Run - Enter Names");
         nameFrame.setSize(800, 600);
         nameFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -311,14 +310,11 @@ public class GameApp {
             String p2 = (nameField2 != null) ? nameField2.getText().trim() : "";
 
             if (players == 1 && !p1.isEmpty()) {
-                PlayerName1 = p1;
                 saveScore(p1, -1);
                 nameFrame.dispose();
                 showDifficultySelection(1);
 
             } else if (players == 2 && !p1.isEmpty() && !p2.isEmpty()) {
-                PlayerName1 = p1;
-                PlayerName2 = p2;
                 saveScore(p1, -1);
                 saveScore(p2, -1);
                 nameFrame.dispose();
@@ -546,7 +542,7 @@ public class GameApp {
         return btn;
     }
 
-    public static void saveScore(String playerName, int newScore) {
+    void saveScore(String playerName, int newScore) {
         Map<String, Integer> scores = loadScores();
 
         if (scores.containsKey(playerName)) {
@@ -565,50 +561,21 @@ public class GameApp {
         }
     }
 
-
-    public static Map<String, Integer> loadScores() {
-        // 1. قراءة جميع النتائج في Map مؤقتة
-        Map<String, Integer> allScores = new HashMap<>();
+    Map<String, Integer> loadScores() {
+        Map<String, Integer> scores = new HashMap<>();
+        int cnt = 0;
         File file = new File("scores.txt");
-        if (!file.exists()) return allScores; // إرجاع خريطة فارغة إذا لم يكن الملف موجودًا
-
+        if (!file.exists()) return scores;
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
-            while ((line = reader.readLine()) != null) {
-                // إزالة أي مسافات زائدة
-                line = line.trim();
-                if (line.isEmpty()) continue;
-
+            while ((line = reader.readLine()) != null && cnt != 10) {
                 String[] parts = line.split(":");
-                if (parts.length == 2) {
-                    try {
-                        String name = parts[0].trim();
-                        int score = Integer.parseInt(parts[1].trim());
-
-                        allScores.merge(name, score, Integer::max);
-                    } catch (NumberFormatException e) {
-                        System.err.println("Skipping invalid score line: " + line);
-                    }
-                }
+                if (parts.length == 2) scores.put(parts[0], Integer.parseInt(parts[1]));
+                cnt++;
             }
         } catch (IOException e) {
-            System.err.println("Error reading scores file: " + e.getMessage());
+            System.out.println(e.getMessage());
         }
-
-        // 2. و 3. فرز وتحديد أفضل 10 نتائج (Top 10)
-
-        // استخدام Stream API للفرز:
-        return allScores.entrySet().stream()
-                // الفرز تنازليًا حسب القيمة (النتيجة)
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                // تحديد أفضل 10 عناصر فقط
-                .limit(10)
-                // تجميع أفضل 10 نتائج مرة أخرى في LinkedHashMap
-                // (للحفاظ على ترتيب الفرز)
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (e1, e2) -> e1, // دمج منطقي (غير مستخدم هنا)
-                        LinkedHashMap::new)); // استخدام LinkedHashMap للحفاظ على الترتيب
+        return scores;
     }
 }
